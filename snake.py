@@ -1,89 +1,172 @@
-import random
+import board
+import neopixel
 from analogio import AnalogIn
+import random
+from time import sleep
+from adafruit_circuitplayground.express import cpx
+
+# Setup
+pixels = neopixel.NeoPixel(board.A1, 64, brightness=0.1, auto_write=False)
+vert = AnalogIn(board.A3)
+horiz = AnalogIn(board.A2)
+
+def play_start():
+    """game start sound"""
+    cpx.play_tone(262, 0.1) 
+    sleep(0.05)
+    cpx.play_tone(330, 0.1)  
+    sleep(0.05)
+    cpx.play_tone(392, 0.1)  
+
+def play_game_over():
+    """game over sound"""
+    cpx.play_tone(392, 0.2) 
+    sleep(0.1)
+    cpx.play_tone(330, 0.2) 
+    sleep(0.1)
+    cpx.play_tone(262, 0.3)  
+
+def test_joystick():
+    # Up test
+    while True:
+        if vert.value < 20000:
+            for i in range(8):
+                pixels[i] = (0, 255, 0)
+            pixels.show()
+            sleep(0.5)
+            break
+        pixels.fill((0, 0, 0))
+        for i in range(8):
+            pixels[i] = (30, 30, 30)
+        pixels.show()
+        sleep(0.1)
+    
+    # Down test
+    while True:
+        if vert.value > 45000:
+            for i in range(56, 64):
+                pixels[i] = (0, 255, 0)
+            pixels.show()
+            sleep(0.5)
+            break
+        pixels.fill((0, 0, 0))
+        for i in range(56, 64):
+            pixels[i] = (30, 30, 30)
+        pixels.show()
+        sleep(0.1)
+    
+    # Left test
+    while True:
+        if horiz.value < 20000:
+            for i in range(0, 64, 8):
+                pixels[i] = (0, 255, 0)
+            pixels.show()
+            sleep(0.5)
+            break
+        pixels.fill((0, 0, 0))
+        for i in range(0, 64, 8):
+            pixels[i] = (30, 30, 30)
+        pixels.show()
+        sleep(0.1)
+    
+    # Right test
+    while True:
+        if horiz.value > 45000:
+            for i in range(7, 64, 8):
+                pixels[i] = (0, 255, 0)
+            pixels.show()
+            sleep(0.5)
+            break
+        pixels.fill((0, 0, 0))
+        for i in range(7, 64, 8):
+            pixels[i] = (30, 30, 30)
+        pixels.show()
+        sleep(0.1)
 
 def read_joystick():
-    # TODO
-    return (0, 0)
+    return (vert.value, horiz.value)
 
-def update_head(snake_head, joystick_values, current_direction):
-    """
-    Moves the snake's head based on joystick input or keeps it moving in the same direction if joystick is neutral.
+def update_head(head, joystick_values, direction):
+    v, h = joystick_values
+    
+    # Update direction based on joystick
+    if v < 20000 and direction != "down":  # Up
+        direction = "up"
+    elif v > 45000 and direction != "up":  # Down
+        direction = "down"
+    elif h < 20000 and direction != "right":  # Left
+        direction = "left"
+    elif h > 45000 and direction != "left":  # Right
+        direction = "right"
+    
+    x, y = head
+    if direction == "up":
+        x = (x - 1) % 8
+    elif direction == "down":
+        x = (x + 1) % 8
+    elif direction == "left":
+        y = (y - 1) % 8
+    else:  # right
+        y = (y + 1) % 8
+        
+    return (x, y), direction
 
-    Parameters:
-        snake_head (tuple): Current position of the snake's head (x, y).
-        joystick_values (tuple): Joystick values (trace1, trace2).
-        current_direction (str): Current direction of the snake ('up', 'down', 'left', 'right').
-
-    Returns:
-        tuple: New position of the snake's head.
-        str: Updated direction of the snake.
-    """
-    trace1, trace2 = joystick_values
-    direction = current_direction
-    # Determine direction from joystick values
-    if trace1 < 20000:  # Up
-        if current_direction != (1,0): # currently down
-            direction = "up"
-    elif trace1 > 45000:  # Down
-        if current_direction != (1,0): # currently up
-            direction = "down"
-    elif trace2 < 20000:  # Left
-        if current_direction != (0,-1): # currently right
-            direction = "left"
-    elif trace2 > 45000:
-        if current_direction != (0,1): # currently left
-            direction = "right"
-    else:
-        direction = current_direction  # Keep moving in the current direction if joystick is neutral
-
-    moves = {
-        "up": (-1, 0),
-        "down": (1, 0),
-        "left": (0, -1),
-        "right": (0, 1)
-    }
-
-    dx, dy = moves[direction]
-    new_x = snake_head[0] + dx
-    new_y = snake_head[1] + dy
-
-    # Keep the head within bounds (0-7 grid)
-    if 0 <= new_x <= 7 and 0 <= new_y <= 7:
-        return (new_x, new_y), direction
-
-    return snake_head, direction  # No change if out of bounds
-
-def eat_apple(tail_arr, apple, head):
-    """
-    in the case head encountered an apple:
-    inserts old head at the beginning of the tail array,
-    returns modified tail array and a newly generated apple
-    """
-    tail_arr.insert(0, head)
-    #head[0] = apple[0]
-    #head[1] = apple[1]
+def main():
+    test_joystick()
+    play_start() 
+    
+    head = (4, 3)
+    direction = "right"
+    tail = []
+    
+    # Random initial apple
     x = random.randint(0, 7)
     y = random.randint(0, 7)
-    apple = (x,y)
-    # TODO: play sound
-    while apple in tail_arr or apple == head:
+    apple = (x, y)
+    while apple == head:
         x = random.randint(0, 7)
         y = random.randint(0, 7)
-        apple = (x,y)
-    return tail_arr, apple
- 
-def main():
-    apple = (2, 5) #default value
-    head = (4,3)
-    current_direction = (0,1)
-    tail_arr = [] # descending order from head
+        apple = (x, y)
+    
     while True:
-        joystick_values = read_joystick()
-        new_head, new_direction = update_head(head, joystick_values, current_direction)
-        current_direction = new_direction
-        if new_head in tail_arr or new_head == head:
-            break # collision: game over
-        elif new_head ==  apple: # head ate apple
-            tail_arr, apple = eat_apple(tail_arr, apple, head)
-        else:
-            tail_arr.pop() # remove last element in the tail
+        new_head, new_direction = update_head(head, read_joystick(), direction)
+        
+        if new_head in tail:
+            play_game_over()  # Play game over sound
+            break
+            
+        if new_head == apple:
+            tail.append(head)
+            x = random.randint(0, 7)
+            y = random.randint(0, 7)
+            apple = (x, y)
+            while apple == new_head or apple in tail:
+                x = random.randint(0, 7)
+                y = random.randint(0, 7)
+                apple = (x, y)
+        elif tail:
+            tail.append(head)
+            tail.pop(0)
+        elif new_head != head:
+            tail.append(head)
+        
+        head = new_head
+        direction = new_direction
+        
+        # Draw
+        pixels.fill((0, 0, 0))
+        pixels[apple[0] * 8 + apple[1]] = (255, 0, 0)  # Apple
+        pixels[head[0] * 8 + head[1]] = (0, 255, 0)    # Head
+        for tx, ty in tail:
+            pixels[tx * 8 + ty] = (0, 0, 255)          # Tail
+        pixels.show()
+        
+        sleep(0.3)
+    
+    # Game over
+    pixels.fill((255, 0, 0))
+    pixels.show()
+    sleep(1)
+    main()
+
+main()
