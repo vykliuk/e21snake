@@ -1,4 +1,4 @@
-# Greedy Snake
+# Neopixel Greedy Snake
 
 This project is the final submission for **E21: Computer Engineering Fundamentals** at Swarthmore College. The team members for this project are:
 
