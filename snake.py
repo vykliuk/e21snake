@@ -185,7 +185,4 @@ def main():
     # Display the score in digits
     display_number(score)
 
-    while True:
-        pass
-
 main()
